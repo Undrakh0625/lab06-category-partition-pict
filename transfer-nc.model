@@ -1,0 +1,6 @@
+From: Active, Frozen
+To: Other, SameAsFrom
+Amount: BelowBalance, ExactBalance, AboveBalance
+Currency: MNT, USD
+Balance: Sufficient, Exact, Insufficient
+DailyLimit: Available, Reached
