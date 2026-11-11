@@ -63,3 +63,60 @@ Build болон source commit-ийн нотолгоо `results/pict-build.txt`-
 | 13 | Active | Other | BelowBalance | MNT | DailyLimit reached; бусад нь зөв `[SINGLE]` | 429 / `ERROR_DAILY_LIMIT` |
 | 14 | `~Missing` | `~Missing` | BelowBalance | MNT | Давхар алдаа; From түрүүлж шалгана | 404 / `ERROR_FROM_NOT_FOUND` |
 | 15 | Active | Other | `~Negative` | `~Unsupported` | Давхар алдаа; Amount Currency-гээс түрүүлнэ | 400 / `ERROR_AMOUNT_INVALID` |
+
+## Хэсэг B — PICT pairwise covering arrays
+
+### B1. Browser model
+
+`browser.model`-ийн бүрэн олонлог нь Browser `4` × OS `3` × Device `2` × Network `3` × Locale `2` = **144** хослол. PICT-ийн гаралтын эхний мөр нь баганын толгой тул өгөгдлийн мөрийг толгойг хасаж тоолов.
+
+| Coverage | Гаралтын файл дахь нийт мөр | Тестийн мөр (толгойг хассан) | Бүрэн 144 хослолоос цөөрсөн |
+|---|---:|---:|---:|
+| 2-way | 14 | **13** | 131 |
+| 3-way | 41 | **40** | 104 |
+
+PICT greedy аргаар одоогоор хамгийн олон шинэ pair/triple хамрах мөрийг сонгодог тул үр дүн нь хүчинтэй covering array байна. Энэ нь бүх боломжит багц дундаас хамгийн цөөн мөртэйг математик аргаар баталдаггүй; параметрийн дараалал болон constraints-ийг өөрчлөхөд гарах мөрийн тоо ч өөрчлөгдөж болно.
+
+### B2. Transfer models-ийн гаралт
+
+Доорх `N → M` нь сонголтуудын бүх cross-product-оос constraints хангаж үлдсэн боломжит хослолын тоо; PICT output дахь мөр нь pairwise covering set. Error тоолохдоо `From`, `To`, funds/amount, currency, daily-limit алдааны ангийг тус тус тооцож, `Amount`–`Balance` зөрчлийг нэг funds алдаа гэж үзсэн.
+
+| Model | Сонголтын бүтэн хэмжээ N → хязгаарын дараах M | PICT тестийн мөр | Happy path мөр | Нэг мөр дэх error-ийн тоо |
+|---|---:|---:|---:|---:|
+| `transfer-nc.model` (constraints-гүй) | 144 → 144 | 10 | 0 | 1–4 |
+| `transfer.model` (эерэг утга, constraints-тэй) | 144 → 12 | 10 | 2 | 0–1 |
+| `transfer-neg.model` (`~` сөрөг утгатай) | 1,728 → 27 | 25 | 2 | 0–1 |
+
+Файлын мөрийн тоо нь толгой мөртэйгээ нийлээд `transfer-nc.txt` — **11**, `transfer.txt` — **11**, `transfer-neg.txt` — **26** байна. Constraints-гүй модель pairwise мөрүүдэд хэд хэдэн алдааг давхардуулж чадсан; constrained болон negative model-ийн дүрмүүд алдааны утгыг бусад хүчинтэй утгатай дангаар нь хослуулсан.
+
+### PICT мөрөөс хөрвүүлсэн 3 тест кейс
+
+#### 1. Happy path — `transfer.txt`-ийн `Active / Other / ExactBalance / MNT / Exact / Available` мөр
+
+- **Setup:** `ACC-1001` идэвхтэй, үлдэгдэл `10,000 MNT`; `ACC-2002` идэвхтэй; өдрийн ашиглалт лимитээс бага.
+- **Input JSON:** `{"from":"ACC-1001","to":"ACC-2002","amount":10000,"currency":"MNT"}`
+- **Oracle:** HTTP `201`, `result: "OK"`.
+
+#### 2. Сөрөг утга — `transfer-neg.txt`-ийн `~Missing / Other / BelowBalance / MNT / Sufficient / Available` мөр
+
+- **Setup:** `ACC-404` бүртгэлгүй; `ACC-2002` идэвхтэй, үлдэгдэл хүрэлцээтэй; лимит боломжтой.
+- **Input JSON:** `{"from":"ACC-404","to":"ACC-2002","amount":5000,"currency":"MNT"}`
+- **Oracle:** HTTP `404`, `result: "ERROR_FROM_NOT_FOUND"`.
+
+#### 3. Сөрөг amount — `transfer-neg.txt`-ийн `Active / Other / ~Negative / USD / Sufficient / Available` мөр
+
+- **Setup:** `ACC-1001`, `ACC-2002` идэвхтэй; эх дансны үлдэгдэл `100,000`; лимит боломжтой.
+- **Input JSON:** `{"from":"ACC-1001","to":"ACC-2002","amount":-500,"currency":"USD"}`
+- **Oracle:** HTTP `400`, `result: "ERROR_AMOUNT_INVALID"`.
+
+## Дүгнэлт — 9 өгүүлбэр
+
+1. Category-Partition нь шилжүүлгийн параметрүүд, орчны төлөв, алдааны утгыг ойлгомжтой ангилсан.
+2. Алдааны давуу эрэмбэ нь давхар буруу оролтын үед хүлээгдэх oracle-ийг нэг утгатай болгосон.
+3. Гар спецификацид happy, boundary, дан алдаа болон давхар алдааг хамарсан 15 кейс тодорхойлсон.
+4. Browser 2-way set 144 боломжийг 13 тестийн мөрөөр төлөөлсөн.
+5. Browser 3-way set 40 мөр болсон нь гурвалсан харилцан үйлчлэлийг хамрах нэмэлт өртгийг харуулсан.
+6. Transfer constraints боломжит эерэг хослолыг 144-өөс 12 болгож, negative model-ийн олонлогийг 1,728-аас 27 болгож хязгаарласан.
+7. Constraints-гүй transfer set 10 мөртэй ч happy path оруулаагүй бөгөөд нэг мөрөнд 1–4 алдаа давхардуулсан.
+8. Negative model 25 мөр гаргаж, happy болон нэг алдаатай кейсүүдийг хамруулсан.
+9. Гар Category-Partition нь oracle болон бизнесийн утгыг тайлбарлахад давуу, PICT нь олон параметрийн хослолыг системтэй цөөлөхөд давуу боловч гарсан хамгийн бага мөрийн тоог баталдаггүй.
