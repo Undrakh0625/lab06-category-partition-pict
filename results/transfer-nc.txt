@@ -1,0 +1,11 @@
+From	To	Amount	Currency	Balance	DailyLimit
+Active	Other	ExactBalance	MNT	Insufficient	Available
+Frozen	SameAsFrom	ExactBalance	USD	Exact	Reached
+Frozen	Other	ExactBalance	USD	Sufficient	Available
+Active	SameAsFrom	AboveBalance	MNT	Exact	Available
+Active	Other	BelowBalance	MNT	Sufficient	Reached
+Frozen	SameAsFrom	BelowBalance	USD	Exact	Available
+Active	Other	AboveBalance	USD	Exact	Reached
+Frozen	SameAsFrom	BelowBalance	USD	Insufficient	Reached
+Frozen	Other	AboveBalance	MNT	Insufficient	Reached
+Active	SameAsFrom	AboveBalance	USD	Sufficient	Available

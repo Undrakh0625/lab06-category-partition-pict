@@ -1,0 +1,14 @@
+Browser	OS	Device	Network	Locale
+Safari	Windows	Desktop	Offline	en-US
+Edge	Linux	Tablet	WiFi	mn-MN
+Chrome	macOS	Desktop	Offline	mn-MN
+Chrome	macOS	Tablet	WiFi	en-US
+Firefox	Windows	Tablet	LTE	mn-MN
+Safari	macOS	Desktop	LTE	mn-MN
+Edge	Windows	Desktop	LTE	en-US
+Edge	macOS	Tablet	Offline	en-US
+Chrome	Linux	Desktop	LTE	en-US
+Firefox	macOS	Desktop	WiFi	en-US
+Firefox	Linux	Tablet	Offline	mn-MN
+Safari	Linux	Tablet	WiFi	en-US
+Chrome	Windows	Tablet	WiFi	mn-MN
