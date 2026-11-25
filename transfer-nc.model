@@ -1,6 +1,6 @@
-From: Active, Frozen
-To: Other, SameAsFrom
-Amount: BelowBalance, ExactBalance, AboveBalance
-Currency: MNT, USD
+From: Active, Frozen, Missing, Malformed
+To: Other, SameAsFrom, Missing, Malformed
+Amount: BelowBalance, ExactBalance, AboveBalance, OverLimit, Zero, Negative
+Currency: MNT, USD, Unsupported
 Balance: Sufficient, Exact, Insufficient
 DailyLimit: Available, Reached

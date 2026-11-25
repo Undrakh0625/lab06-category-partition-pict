@@ -2,121 +2,70 @@
 
 ## Оюутан ба орчин
 
-- Оюутны нэр: **Ундрах**
+- Оюутны нэр: **Эрдэнэцогт Ундрах** (**Undrakh Erdenetsogt**)
 - Оюутны код: **B252270135**
 - OS: macOS (Apple Silicon)
-- CMake: `4.4.4`
-- C++ compiler: AppleClang `17.0.0`
+- CMake: `4.4.4`, AppleClang: `17.0.0`
 - PICT: `3.7.4`, source commit `ab76c25` (`2026-09-08`)
-- PICT source/build: repository-оос гадна `/Users/undrakherdenetsogt/Documents/Codex/tools/pict`.
 
-Энэ бол тест дизайн лаборатори; ажиллуулж турших REST API эсвэл application code агуулаагүй. PICT-ийн эх код repository-оос гадна байрлана, энд зөвхөн model болон гаралтын файлууд бий.
-
-## Алхам 1 — PICT бүтээх
-
-macOS дээр CMake болон C++ compiler шаардлагатай. Энэ компьютерт CMake, AppleClang аль хэдийн байсан тул эх кодыг clone хийж CMake-аар бүтээсэн. PICT binary-г өөрийн `PATH`-д нэмэх жишээ:
+## Алхам 1 — PICT бүтээх ба ажиллуулах
 
 ```sh
-export PATH="/Users/undrakherdenetsogt/Documents/Codex/tools/pict/build/cli:$PATH"
-pict browser.model
-```
+export PATH="/Users/undrakherdenetsogt/Documents/Qualityassurance/tools/pict/build/cli:$PATH"
+pict browser.model > results/browser-2way.txt
+pict browser.model /o:3 > results/browser-3way.txt
+Хэсэг A — Гар Category-Partition (A1, A2, A3)
+A1–A2. Сонголт, тэмдэглэгээ ба [ERROR] / [SINGLE] / [IF]-ийн үндэслэл
+Бүх гурван шилжүүлгийн загварыг (transfer-nc.model, transfer.model, transfer-neg.model) ижил суурь утгын олонлогоос (N = 4 × 4 × 6 × 3 × 3 × 2 = 1,728 хослол) бүтээв.
 
-Build болон source commit-ийн нотолгоо `results/pict-build.txt`-д хадгалагдсан.
+Category	Сонголтууд ба тэмдэглэгээ	[ERROR] / [SINGLE] / [IF]-ийн нэг өгүүлбэртэй үндэслэл
+From	Active, Frozen [ERROR], Missing [ERROR], Malformed [ERROR]	Frozen, Missing, Malformed утгууд нь эхлэх данс шилжүүлэг хийх эрхгүй эсвэл олдохгүй тул бусад оролтоос үл хамааран шууд алдаа буцаах [ERROR] ангилалд орно.
+To	Other, SameAsFrom [ERROR], Missing [ERROR], Malformed [ERROR]	SameAsFrom нь From данстай давхцахгүй байх [IF] нөхцөлийг зөрчих бөгөөд Missing, Malformed-ийн хамт хүлээн авагч буруу тул дангаар алдаа үүсгэх [ERROR] утга болно.
+Amount	BelowBalance, ExactBalance, AboveBalance [ERROR], OverLimit [ERROR], Zero [ERROR], Negative [ERROR]	BelowBalance ба ExactBalance нь Balance-ийн хэмжээнээс хамаарах [IF] утгууд бол Zero, Negative, AboveBalance, OverLimit нь гүйлгээний дүнгийн дүрэм зөрчих [ERROR] утгууд юм.
+Currency	MNT, USD, Unsupported [ERROR]	Систем зөвхөн MNT болон USD валютыг дэмжих [IF] нөхцөлтэй тул Unsupported нь бусад оролт зөв байсан ч шууд татгалзах [ERROR] утга болно.
+Balance	Sufficient, Exact, Insufficient	Balance нь Amount-ийн утгатай логик нийцэлтэй байх ёстой [IF] параметр бөгөөд Insufficient нь AboveBalance-тэй хосолж үлдэгдэл хүрэлцэхгүй нөхцөлийг бүрдүүлнэ.
+DailyLimit	Available, Reached [ERROR][SINGLE]	Reached нь өдрийн гүйлгээний дээд хязгаар тулсан [ERROR] утга бөгөөд бусад бүх оролт хүчинтэй үед дангаар тусгаарлан шалгах [SINGLE] шинжтэй.
+Нэг хүсэлтэд олон алдаа давхацвал шалгах эрэмбэ: From → To → Amount → Currency → Balance → DailyLimit.
 
-## Хэсэг A — Гар Category-Partition
+A3. Спецификацийн кейсүүд (Бүх алдаа HTTP 200 + ERROR_*)
+Тодорхойлолтын дагуу амжилттай гүйлгээ болон алдааны хариу бүгд HTTP 200 төлөвтэйгөөр JSON result талбарт дараах утгуудыг буцаана:
 
-### Сонголт, төлөөлөх утга ба тэмдэглэгээ
+#	From	To	Amount	Currency	Setup / Property	HTTP	Result
+1	Active	Other	BelowBalance	MNT	Balance Sufficient, DailyLimit Available	200	OK
+2	Active	Other	ExactBalance	USD	Balance Exact (Amount == Balance), DailyLimit Available	200	OK
+3	Missing	Other	BelowBalance	MNT	Эх данс бүртгэлгүй (From эхэлж шалгагдана)	200	ERROR_NO_FROM
+4	Malformed	Other	BelowBalance	MNT	Эх дансны дугаар буруу форматтай	200	ERROR_NO_FROM
+5	Frozen	Other	BelowBalance	MNT	Эх данс царцаагдсан (From идэвхгүй)	200	ERROR_FROZEN
+6	Active	Missing	BelowBalance	MNT	Хүлээн авагч данс бүртгэлгүй	200	ERROR_NO_TO
+7	Active	Malformed	BelowBalance	MNT	Хүлээн авагч дансны дугаар буруу форматтай	200	ERROR_NO_TO
+8	Active	SameAsFrom	BelowBalance	MNT	Эх ба хүлээн авагч данс ижил	200	ERROR_SAME_ACCOUNT
+9	Active	Other	Zero	MNT	Шилжүүлэх дүн 0	200	ERROR_BAD_AMOUNT
+10	Active	Other	Negative	USD	Шилжүүлэх дүн сөрөг (< 0)	200	ERROR_BAD_AMOUNT
+11	Active	Other	BelowBalance	Unsupported	Дэмжигдээгүй валют (буруу дүн/валют)	200	ERROR_BAD_AMOUNT
+12	Active	Other	AboveBalance	MNT	Balance Insufficient (Amount > Balance)	200	ERROR_INSUFFICIENT
+13	Active	Other	OverLimit	MNT	Нэг удаагийн/өдрийн лимитээс хэтэрсэн дүн	200	ERROR_LIMIT
+14	Active	Other	BelowBalance	MNT	DailyLimit Reached ([SINGLE], бусад нь хүчинтэй)	200	ERROR_LIMIT
+15	Missing	SameAsFrom	Negative	MNT	Давхар алдаа: From хамгийн түрүүнд шалгагдана	200	ERROR_NO_FROM
+Хэсэг B — PICT pairwise ба 3-way covering arrays
+B1. Зааврын browser.model (6 параметр) ба лекцийн 9 мөрийн харьцуулалт
+browser.model нь зааврын 6 параметрээр бүтээгдсэн: Content (3) × Cookies (3) × Popups (2) × Addons (2) × Attacks (2) × Forgeries (2) = 144 бүрэн хослол.
 
-`[ERROR]` нь дангаараа алдаа өгөх сонголт, `[SINGLE]` нь бусад параметрүүд хүчинтэй үед ганцаар турших утга, `[IF]` нь property/нөхцөлөөс хамаарах утгыг тэмдэглэнэ. PICT model дахь `~` нь сөрөг буюу зөвшөөрөгдөхгүй утгыг заана.
+Арга / Coverage	Файл дахь нийт мөр	Тестийн мөр (толгойг хассан)	Бүрэн 144 хослолоос цөөрсөн хувь
+Лекцийн гар арга (2-way)	—	9	93.8%
+PICT 2-way (results/browser-2way.txt)	11	10	93.1%
+PICT 3-way (results/browser-3way.txt)	21	20	86.1%
+Харьцуулалт: PICT 2-way гаралт 10 тестийн мөр өгсөн нь лекцийн гар аргаар гаргасан 9 мөрөөс ердөө 1 мөрөөр илүү байна. Учир нь PICT нь greedy heuristic алгоритм ашиглан одоогийн байдлаар хамгийн олон шинэ хосыг хаах мөрийг дараалан сонгодог тул бүх боломжит багц дундаас математикийн хувьд хамгийн бага (global minimum = 9) шийдлийг үргэлж баталгаажуулдаггүй ч олон параметртэй үед хэдхэн миллисекундэд алдаагүй 100% pairwise бүрхэлт өгдөг давуу талтай. Харин 3-way (/o:3) горимд гурвалсан харилцан үйлчлэлийг бүгдийг хамрахын тулд тестийн мөр 20 болж 2 дахин нэмэгдсэн.
 
-| Category | Сонголтууд ба төлөөлөх утга | Property/тэмдэглэгээ |
-|---|---|---|
-| `From` данс | Active; Frozen `[ERROR]`; байхгүй `~Missing` `[ERROR]`; буруу хэлбэр `~Malformed` `[ERROR]` | Transfer эхлэх дансны төлөв |
-| `To` данс | Other; From-той ижил `SameAsFrom` `[ERROR]`; байхгүй `~Missing` `[ERROR]`; буруу хэлбэр `~Malformed` `[ERROR]` | `To` нь `From`-оос өөр байх ёстой `[IF]` |
-| `Amount` | BelowBalance; ExactBalance; AboveBalance `[ERROR]`; `~Zero`, `~Negative`, `~Malformed` `[ERROR]` | Below: balance > amount; Exact: balance = amount; Above: balance < amount `[IF]` |
-| `Currency` | MNT; USD; дэмжигдээгүй `~Unsupported` `[ERROR]` | Валют нь MNT эсвэл USD байх ёстой `[IF]` |
-| Source `Balance` | Sufficient; Exact; Insufficient | Amount-тай нийцнэ `[IF]` |
-| Өдрийн `DailyLimit` | Available; Reached `[ERROR][SINGLE]` | Reached-г бусад бүх оролт хүчинтэй үед шалгана `[IF]` |
+B2. Ижил утгын олонлогоос бүтээсэн 3 transfer загварын харьцуулалт
+Гурван загвар гурвуулаа ижил 6 параметр, ижил утгын олонлогоос (N = 1,728, үүнд Missing, Zero, OverLimit бүгд орсон) үүссэн:
 
-Өргөн Category-Partition сонголтуудын бүрэн олонлог `N = 4 × 4 × 6 × 3 × 3 × 2 = 1,728`; PICT model-ийн нөхцөлүүд сөрөг/алдаатай утгыг бусад зөв утгатайгаар дангаар шалгаж, нийт `M = 27` боломжит хослол үлдээнэ. Эерэг утгатай `transfer.model`-ийн хувьд `N = 144`, нөхцөлийн дараа `M = 12` болно. `transfer-nc.model` нь эдгээр 144 эерэг боломжид хязгаарлалт тавихгүй.
+Загвар	Файл дахь мөр	Тестийн мөр (толгойг хассан)	Happy path мөр	Нэг мөр дэх алдааны тоо	Онцлог
+transfer-nc.model (constraints-гүй)	28	27	0	1–5	Ямар ч IF дүрэмгүй тул алдаанууд нэг мөрөнд олноор давхардана
+transfer.model (domain IF constraints)	27	26	0	1–4	Amount ба Balance/DailyLimit-ийн логик нийцлийг хангасан
+transfer-neg.model (~ сөрөг + [SINGLE] IF)	26	25	4	0–1	Сөрөг утгуудыг ~-ээр тэмдэглэж, алдаа бүрийг хүчинтэй орчинтой дангаар шалгана
+PICT мөрөөс хөрвүүлсэн 3 тест кейс
+Happy path (transfer-neg.txt мөр 4): Active / Other / BelowBalance / MNT / Sufficient / Available → Input: {"from":"ACC-1001","to":"ACC-2002","amount":5000,"currency":"MNT"} → Oracle: HTTP 200, result: "OK".
 
-Нэг хүсэлтэд хэд хэдэн алдаа давхацвал буцаах алдааны эрэмбэ `From → To → Amount → Currency → Balance → DailyLimit`; иймээс давхар алдааны кейст эхний илэрсэн шалгалтын алдаа хүлээгдэнэ.
+Дан алдаа (transfer-neg.txt мөр 6): ~Missing / Other / BelowBalance / MNT / Sufficient / Available → Input: {"from":"ACC-9999","to":"ACC-2002","amount":5000,"currency":"MNT"} → Oracle: HTTP 200, result: "ERROR_NO_FROM".
 
-### Спецификацийн кейсүүд
-
-Эдгээр хүснэгт нь системийн тодорхойлолт бөгөөд бодитоор ажиллах шилжүүлгийн API даалгаварт өгөөгүй.
-
-| # | From | To | Amount | Currency | Setup/property | HTTP / result |
-|---:|---|---|---|---|---|---|
-| 1 | Active | Other | BelowBalance | MNT | Balance sufficient, limit available | 201 / `OK` |
-| 2 | Active | Other | ExactBalance | MNT | Amount = balance | 201 / `OK` |
-| 3 | Frozen | Other | BelowBalance | MNT | Бусад оролт хүчинтэй | 403 / `ERROR_FROM_FROZEN` |
-| 4 | `~Missing` | Other | BelowBalance | MNT | From account байхгүй | 404 / `ERROR_FROM_NOT_FOUND` |
-| 5 | `~Malformed` | Other | BelowBalance | MNT | From ID буруу форматтай | 400 / `ERROR_FROM_INVALID` |
-| 6 | Active | SameAsFrom | BelowBalance | MNT | Нэг данснаас өөрт нь шилжүүлэх | 400 / `ERROR_SAME_ACCOUNT` |
-| 7 | Active | `~Missing` | BelowBalance | MNT | To account байхгүй | 404 / `ERROR_TO_NOT_FOUND` |
-| 8 | Active | `~Malformed` | BelowBalance | MNT | To ID буруу форматтай | 400 / `ERROR_TO_INVALID` |
-| 9 | Active | Other | `~Zero` | MNT | Amount = 0 | 400 / `ERROR_AMOUNT_INVALID` |
-| 10 | Active | Other | `~Negative` | USD | Amount < 0 | 400 / `ERROR_AMOUNT_INVALID` |
-| 11 | Active | Other | AboveBalance | MNT | Balance хүрэлцэхгүй | 422 / `ERROR_INSUFFICIENT_FUNDS` |
-| 12 | Active | Other | BelowBalance | `~Unsupported` | Валют дэмжигдээгүй | 400 / `ERROR_UNSUPPORTED_CURRENCY` |
-| 13 | Active | Other | BelowBalance | MNT | DailyLimit reached; бусад нь зөв `[SINGLE]` | 429 / `ERROR_DAILY_LIMIT` |
-| 14 | `~Missing` | `~Missing` | BelowBalance | MNT | Давхар алдаа; From түрүүлж шалгана | 404 / `ERROR_FROM_NOT_FOUND` |
-| 15 | Active | Other | `~Negative` | `~Unsupported` | Давхар алдаа; Amount Currency-гээс түрүүлнэ | 400 / `ERROR_AMOUNT_INVALID` |
-
-## Хэсэг B — PICT pairwise covering arrays
-
-### B1. Browser model
-
-`browser.model`-ийн бүрэн олонлог нь Browser `4` × OS `3` × Device `2` × Network `3` × Locale `2` = **144** хослол. PICT-ийн гаралтын эхний мөр нь баганын толгой тул өгөгдлийн мөрийг толгойг хасаж тоолов.
-
-| Coverage | Гаралтын файл дахь нийт мөр | Тестийн мөр (толгойг хассан) | Бүрэн 144 хослолоос цөөрсөн |
-|---|---:|---:|---:|
-| 2-way | 14 | **13** | 131 |
-| 3-way | 41 | **40** | 104 |
-
-PICT greedy аргаар одоогоор хамгийн олон шинэ pair/triple хамрах мөрийг сонгодог тул үр дүн нь хүчинтэй covering array байна. Энэ нь бүх боломжит багц дундаас хамгийн цөөн мөртэйг математик аргаар баталдаггүй; параметрийн дараалал болон constraints-ийг өөрчлөхөд гарах мөрийн тоо ч өөрчлөгдөж болно.
-
-### B2. Transfer models-ийн гаралт
-
-Доорх `N → M` нь сонголтуудын бүх cross-product-оос constraints хангаж үлдсэн боломжит хослолын тоо; PICT output дахь мөр нь pairwise covering set. Error тоолохдоо `From`, `To`, funds/amount, currency, daily-limit алдааны ангийг тус тус тооцож, `Amount`–`Balance` зөрчлийг нэг funds алдаа гэж үзсэн.
-
-| Model | Сонголтын бүтэн хэмжээ N → хязгаарын дараах M | PICT тестийн мөр | Happy path мөр | Нэг мөр дэх error-ийн тоо |
-|---|---:|---:|---:|---:|
-| `transfer-nc.model` (constraints-гүй) | 144 → 144 | 10 | 0 | 1–4 |
-| `transfer.model` (эерэг утга, constraints-тэй) | 144 → 12 | 10 | 2 | 0–1 |
-| `transfer-neg.model` (`~` сөрөг утгатай) | 1,728 → 27 | 25 | 2 | 0–1 |
-
-Файлын мөрийн тоо нь толгой мөртэйгээ нийлээд `transfer-nc.txt` — **11**, `transfer.txt` — **11**, `transfer-neg.txt` — **26** байна. Constraints-гүй модель pairwise мөрүүдэд хэд хэдэн алдааг давхардуулж чадсан; constrained болон negative model-ийн дүрмүүд алдааны утгыг бусад хүчинтэй утгатай дангаар нь хослуулсан.
-
-### PICT мөрөөс хөрвүүлсэн 3 тест кейс
-
-#### 1. Happy path — `transfer.txt`-ийн `Active / Other / ExactBalance / MNT / Exact / Available` мөр
-
-- **Setup:** `ACC-1001` идэвхтэй, үлдэгдэл `10,000 MNT`; `ACC-2002` идэвхтэй; өдрийн ашиглалт лимитээс бага.
-- **Input JSON:** `{"from":"ACC-1001","to":"ACC-2002","amount":10000,"currency":"MNT"}`
-- **Oracle:** HTTP `201`, `result: "OK"`.
-
-#### 2. Сөрөг утга — `transfer-neg.txt`-ийн `~Missing / Other / BelowBalance / MNT / Sufficient / Available` мөр
-
-- **Setup:** `ACC-404` бүртгэлгүй; `ACC-2002` идэвхтэй, үлдэгдэл хүрэлцээтэй; лимит боломжтой.
-- **Input JSON:** `{"from":"ACC-404","to":"ACC-2002","amount":5000,"currency":"MNT"}`
-- **Oracle:** HTTP `404`, `result: "ERROR_FROM_NOT_FOUND"`.
-
-#### 3. Сөрөг amount — `transfer-neg.txt`-ийн `Active / Other / ~Negative / USD / Sufficient / Available` мөр
-
-- **Setup:** `ACC-1001`, `ACC-2002` идэвхтэй; эх дансны үлдэгдэл `100,000`; лимит боломжтой.
-- **Input JSON:** `{"from":"ACC-1001","to":"ACC-2002","amount":-500,"currency":"USD"}`
-- **Oracle:** HTTP `400`, `result: "ERROR_AMOUNT_INVALID"`.
-
-## Дүгнэлт — 9 өгүүлбэр
-
-1. Category-Partition нь шилжүүлгийн параметрүүд, орчны төлөв, алдааны утгыг ойлгомжтой ангилсан.
-2. Алдааны давуу эрэмбэ нь давхар буруу оролтын үед хүлээгдэх oracle-ийг нэг утгатай болгосон.
-3. Гар спецификацид happy, boundary, дан алдаа болон давхар алдааг хамарсан 15 кейс тодорхойлсон.
-4. Browser 2-way set 144 боломжийг 13 тестийн мөрөөр төлөөлсөн.
-5. Browser 3-way set 40 мөр болсон нь гурвалсан харилцан үйлчлэлийг хамрах нэмэлт өртгийг харуулсан.
-6. Transfer constraints боломжит эерэг хослолыг 144-өөс 12 болгож, negative model-ийн олонлогийг 1,728-аас 27 болгож хязгаарласан.
-7. Constraints-гүй transfer set 10 мөртэй ч happy path оруулаагүй бөгөөд нэг мөрөнд 1–4 алдаа давхардуулсан.
-8. Negative model 25 мөр гаргаж, happy болон нэг алдаатай кейсүүдийг хамруулсан.
-9. Гар Category-Partition нь oracle болон бизнесийн утгыг тайлбарлахад давуу, PICT нь олон параметрийн хослолыг системтэй цөөлөхөд давуу боловч гарсан хамгийн бага мөрийн тоог баталдаггүй.
+Лимит хэтрэх (transfer-neg.txt мөр 20): Active / Other / BelowBalance / MNT / Sufficient / ~Reached → Input: {"from":"ACC-1001","to":"ACC-2002","amount":50000,"currency":"MNT"} (өдрийн лимит дууссан) → Oracle: HTTP 200, result: "ERROR_LIMIT".

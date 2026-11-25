@@ -1,17 +1,16 @@
-From: Active, Frozen, ~Missing, ~Malformed
-To: Other, SameAsFrom, ~Missing, ~Malformed
-Amount: BelowBalance, ExactBalance, AboveBalance, ~Zero, ~Negative, ~Malformed
+From: Active, ~Frozen, ~Missing, ~Malformed
+To: Other, ~SameAsFrom, ~Missing, ~Malformed
+Amount: BelowBalance, ExactBalance, ~AboveBalance, ~OverLimit, ~Zero, ~Negative
 Currency: MNT, USD, ~Unsupported
 Balance: Sufficient, Exact, Insufficient
 DailyLimit: Available, ~Reached
 
-IF [From] = "Frozen" THEN [To] = "Other" AND [Amount] = "BelowBalance" AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
-IF [To] = "SameAsFrom" THEN [From] = "Active" AND [Amount] = "BelowBalance" AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
+IF [From] IN {"Frozen", "Missing", "Malformed"} THEN [To] = "Other" AND [Amount] = "BelowBalance" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
+IF [To] IN {"SameAsFrom", "Missing", "Malformed"} THEN [From] = "Active" AND [Amount] = "BelowBalance" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
 IF [Amount] = "BelowBalance" THEN [Balance] = "Sufficient";
 IF [Amount] = "ExactBalance" THEN [Balance] = "Exact";
-IF [Amount] = "AboveBalance" THEN [From] = "Active" AND [To] = "Other" AND [Balance] = "Insufficient" AND [DailyLimit] = "Available";
-IF [DailyLimit] = "Reached" THEN [From] = "Active" AND [To] = "Other" AND [Amount] = "BelowBalance" AND [Balance] = "Sufficient";
-IF [From] IN {"Missing", "Malformed"} THEN [To] = "Other" AND [Amount] = "BelowBalance" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
-IF [To] IN {"Missing", "Malformed"} THEN [From] = "Active" AND [Amount] = "BelowBalance" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
-IF [Amount] IN {"Zero", "Negative", "Malformed"} THEN [From] = "Active" AND [To] = "Other" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
+IF [Amount] = "AboveBalance" THEN [From] = "Active" AND [To] = "Other" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Insufficient" AND [DailyLimit] = "Available";
+IF [Amount] = "OverLimit" THEN [From] = "Active" AND [To] = "Other" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Reached";
+IF [Amount] IN {"Zero", "Negative"} THEN [From] = "Active" AND [To] = "Other" AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
 IF [Currency] = "Unsupported" THEN [From] = "Active" AND [To] = "Other" AND [Amount] = "BelowBalance" AND [Balance] = "Sufficient" AND [DailyLimit] = "Available";
+IF [DailyLimit] = "Reached" THEN [From] = "Active" AND [To] = "Other" AND [Amount] IN {"BelowBalance", "OverLimit"} AND [Currency] IN {"MNT", "USD"} AND [Balance] = "Sufficient";
